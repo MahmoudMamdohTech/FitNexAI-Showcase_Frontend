@@ -149,21 +149,28 @@
   align-items: start;
 }
 
-/* Viewport Area */
+/* =========================================================================
+   VIEWPORT — The key to correct skeleton tracking.
+   
+   The viewport uses the camera's NATIVE aspect ratio (set via inline style
+   from JS once the camera stream opens). Both <video> and <canvas> are
+   position:absolute filling the same box, so MediaPipe's normalised [0,1]
+   landmark coordinates map pixel-perfectly onto the video frame.
+   
+   object-fit is NOT used on the canvas (it has no effect on <canvas>);
+   instead the viewport itself matches the camera ratio so no crop occurs.
+   ========================================================================= */
 .camera-viewport {
   position: relative;
   width: 100%;
+  /* Default 16:9 before camera opens; JS overrides via inline style */
   aspect-ratio: 16 / 9;
-  max-height: 72vh;
+  max-height: 75vh;
   background: #050608;
   border-radius: var(--radius-lg);
   overflow: hidden;
   border: 1px solid var(--border-default);
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: aspect-ratio 0.3s ease;
 }
 
 /* Corner bracket targeting overlay */
@@ -177,23 +184,39 @@
   z-index: 4;
 }
 
+/*
+  VIDEO element: absolute-fill the viewport.
+  Because aspect-ratio matches the camera, object-fit:cover is equivalent
+  to object-fit:fill — there's no crop. We keep "cover" as a safety net
+  in case the camera negotiates a slightly different ratio.
+*/
 .camera-video {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
   object-fit: cover;
-  transform: scaleX(-1); /* Mirrored for natural selfie view */
+  transform: scaleX(-1);
   z-index: 1;
 }
 
+/*
+  CANVAS overlay: MUST occupy the exact same rectangle as the video.
+  Its backing pixel resolution is set in JS to videoWidth × videoHeight.
+  CSS stretches those pixels to fill the viewport — since aspect ratios
+  match, this is a uniform scale with zero distortion.
+  
+  NOTE: object-fit has NO effect on <canvas> elements. Alignment is
+  achieved purely through matching aspect ratios + absolute positioning.
+*/
 .camera-overlay {
   position: absolute;
-  inset: 0;
+  top: 0;
+  left: 0;
   width: 100%;
   height: 100%;
-  object-fit: cover;
-  transform: scaleX(-1); /* Must match video mirror */
+  transform: scaleX(-1);
   pointer-events: none;
   z-index: 3;
 }
@@ -349,13 +372,15 @@
 
 /* Placeholder state before starting camera */
 .camera-placeholder {
+  /* Center within the viewport using absolute positioning */
+  position: absolute;
+  inset: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
   padding: 40px 24px;
-  max-width: 440px;
   z-index: 5;
 }
 
@@ -388,6 +413,7 @@
   font-size: 14px;
   line-height: 1.5;
   margin-bottom: 24px;
+  max-width: 380px;
 }
 
 /* Sidebar Telemetry & Tips Panel */

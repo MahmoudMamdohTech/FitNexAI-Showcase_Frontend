@@ -100,11 +100,12 @@ const drawSkeleton = (ctx, landmarks, width, height, currentAngle, primaryJoint)
   ctx.clearRect(0, 0, width, height);
   if (!landmarks || landmarks.length === 0) return;
 
+  // Draw connection lines with glow effect
   ctx.lineWidth = 3;
   ctx.strokeStyle = '#00E575';
-  ctx.fillStyle = '#FFFFFF';
+  ctx.shadowColor = '#00E575';
+  ctx.shadowBlur = 6;
 
-  // Draw lines between connected joints
   POSE_CONNECTIONS.forEach(([i, j]) => {
     const p1 = landmarks[i];
     const p2 = landmarks[j];
@@ -118,43 +119,81 @@ const drawSkeleton = (ctx, landmarks, width, height, currentAngle, primaryJoint)
     }
   });
 
-  // Draw glowing joint dots
+  // Reset shadow for dots
+  ctx.shadowBlur = 0;
+
+  // Draw joint dots
   landmarks.forEach((p, idx) => {
     const v = p?.visibility ?? p?.v ?? 1;
     if (p && v > 0.35) {
+      const px = p.x * width;
+      const py = p.y * height;
+      const isPrimary = idx === primaryJoint;
+      const radius = isPrimary ? 6 : 4;
+
+      // Outer glow for primary joint
+      if (isPrimary) {
+        ctx.beginPath();
+        ctx.arc(px, py, 10, 0, 2 * Math.PI);
+        ctx.fillStyle = 'rgba(0, 229, 117, 0.25)';
+        ctx.fill();
+      }
+
       ctx.beginPath();
-      ctx.arc(p.x * width, p.y * height, 4.5, 0, 2 * Math.PI);
-      ctx.fillStyle = idx === primaryJoint ? '#00E575' : '#FFFFFF';
+      ctx.arc(px, py, radius, 0, 2 * Math.PI);
+      ctx.fillStyle = isPrimary ? '#00E575' : '#FFFFFF';
       ctx.fill();
       ctx.lineWidth = 1.5;
-      ctx.strokeStyle = '#00E575';
+      ctx.strokeStyle = isPrimary ? '#FFFFFF' : '#00E575';
       ctx.stroke();
     }
   });
 
-  // Render live angle badge directly near the active joint
-  if (primaryJoint && landmarks[primaryJoint] && currentAngle > 0) {
+  // Render live angle badge near the active joint
+  if (primaryJoint != null && landmarks[primaryJoint] && currentAngle > 0) {
     const pj = landmarks[primaryJoint];
-    const x = pj.x * width + 14;
-    const y = pj.y * height - 8;
+    const x = pj.x * width + 18;
+    const y = pj.y * height - 10;
 
     ctx.save();
-    ctx.scale(-1, 1); // Counter-mirror text so numbers are not flipped
-    ctx.fillStyle = 'rgba(9, 10, 12, 0.85)';
+    // Counter-mirror the text so it reads correctly when the canvas is CSS-flipped
+    ctx.scale(-1, 1);
+
+    const text = `${currentAngle}°`;
+    ctx.font = 'bold 13px monospace';
+    const textWidth = ctx.measureText(text).width;
+    const padX = 8;
+    const padY = 5;
+    const boxW = textWidth + padX * 2;
+    const boxH = 20;
+
+    // Position is inverted because of the mirror scale
+    const textX = -x - boxW;
+    const textY = y - boxH / 2;
+
+    // Background pill
+    ctx.fillStyle = 'rgba(9, 10, 12, 0.88)';
     ctx.strokeStyle = '#00E575';
     ctx.lineWidth = 1;
-    
-    const text = `${currentAngle}°`;
-    ctx.font = 'bold 12px monospace';
-    const textWidth = ctx.measureText(text).width;
-    
-    // Position inverted because of mirror
-    const textX = -x - textWidth - 8;
-    ctx.fillRect(textX, y - 12, textWidth + 12, 18);
-    ctx.strokeRect(textX, y - 12, textWidth + 12, 18);
+    const r = 4;
+    ctx.beginPath();
+    ctx.moveTo(textX + r, textY);
+    ctx.lineTo(textX + boxW - r, textY);
+    ctx.quadraticCurveTo(textX + boxW, textY, textX + boxW, textY + r);
+    ctx.lineTo(textX + boxW, textY + boxH - r);
+    ctx.quadraticCurveTo(textX + boxW, textY + boxH, textX + boxW - r, textY + boxH);
+    ctx.lineTo(textX + r, textY + boxH);
+    ctx.quadraticCurveTo(textX, textY + boxH, textX, textY + boxH - r);
+    ctx.lineTo(textX, textY + r);
+    ctx.quadraticCurveTo(textX, textY, textX + r, textY);
+    ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
 
+    // Text
     ctx.fillStyle = '#00E575';
-    ctx.fillText(text, textX + 6, y + 2);
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, textX + padX, textY + boxH / 2);
     ctx.restore();
   }
 };
@@ -194,7 +233,7 @@ const AiCamera = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isLoadingModel, setIsLoadingModel] = useState(false);
-  const [cameraAspectRatio, setCameraAspectRatio] = useState(null);
+  const [cameraAspect, setCameraAspect] = useState(null); // e.g. "640 / 480"
   const [analysisError, setAnalysisError] = useState(null);
   const [analysis, dispatch] = useReducer(analysisReducer, initialAnalysis);
 
@@ -306,18 +345,21 @@ const AiCamera = () => {
       videoEl.muted = true;
       videoEl.playsInline = true;
 
-      const updateRatio = () => {
-        if (videoEl.videoWidth && videoEl.videoHeight) {
-          setCameraAspectRatio(`${videoEl.videoWidth} / ${videoEl.videoHeight}`);
-        }
-      };
-      videoEl.onloadedmetadata = updateRatio;
+      // Wait for video metadata so we know the actual camera dimensions
+      await new Promise((resolve) => {
+        if (videoEl.videoWidth > 0) { resolve(); return; }
+        videoEl.onloadedmetadata = () => resolve();
+      });
 
       await videoEl.play();
-      updateRatio();
+
+      // Lock viewport aspect ratio to camera's natural ratio — no crop, perfect 1:1 overlay
+      if (videoEl.videoWidth && videoEl.videoHeight) {
+        setCameraAspect(`${videoEl.videoWidth} / ${videoEl.videoHeight}`);
+      }
 
       setIsCameraReady(true);
-      dispatch({ type: 'RESET', payload: { feedback: 'Camera active. Step back to show full body.' } });
+      dispatch({ type: 'RESET', payload: { feedback: 'Camera active — step back to show full body.' } });
     } catch (err) {
       const errName = err?.name || err?.message || 'Unknown error';
       setAnalysisError(`Could not access camera (${errName}). Please ensure camera permissions are granted.`);
@@ -450,9 +492,13 @@ const AiCamera = () => {
       const overlay = overlayCanvasRef.current;
 
       if (videoEl && overlay && videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
-        if (overlay.width !== videoEl.videoWidth || overlay.height !== videoEl.videoHeight) {
-          overlay.width = videoEl.videoWidth;
-          overlay.height = videoEl.videoHeight;
+        // Sync canvas backing resolution to the video's native frame size
+        // This only writes when the dimensions actually change, avoiding per-frame canvas resets
+        const vw = videoEl.videoWidth;
+        const vh = videoEl.videoHeight;
+        if (overlay.width !== vw || overlay.height !== vh) {
+          overlay.width = vw;
+          overlay.height = vh;
         }
         const ctx = overlay.getContext('2d');
 
@@ -507,7 +553,7 @@ const AiCamera = () => {
   const stopCamera = async () => {
     setIsRunning(false);
     setIsCameraReady(false);
-    setCameraAspectRatio(null);
+    setCameraAspect(null);
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     releaseCameraStream();
 
@@ -597,11 +643,17 @@ const AiCamera = () => {
       )}
 
       <div className="camera-grid">
-        {/* Main Camera Viewport */}
+        {/* Main Camera Viewport — aspect ratio adapts to the camera's native resolution */}
         <div
           className="camera-viewport"
-          style={cameraAspectRatio ? { aspectRatio: cameraAspectRatio } : undefined}
+          style={cameraAspect ? { aspectRatio: cameraAspect } : undefined}
         >
+          {/*
+            CRITICAL LAYOUT: Both video and canvas must be position:absolute
+            with identical dimensions so the skeleton tracks ON TOP of the body.
+            The viewport's aspect-ratio matches the camera's native ratio,
+            so there is ZERO crop — every pixel lines up 1:1.
+          */}
           <video
             ref={videoRef}
             className="camera-video"
