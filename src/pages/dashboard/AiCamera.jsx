@@ -194,6 +194,7 @@ const AiCamera = () => {
   const [isRunning, setIsRunning] = useState(false);
   const [isCameraReady, setIsCameraReady] = useState(false);
   const [isLoadingModel, setIsLoadingModel] = useState(false);
+  const [cameraAspectRatio, setCameraAspectRatio] = useState(null);
   const [analysisError, setAnalysisError] = useState(null);
   const [analysis, dispatch] = useReducer(analysisReducer, initialAnalysis);
 
@@ -291,7 +292,7 @@ const AiCamera = () => {
       releaseCameraStream();
 
       const stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+        video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
         audio: false,
       });
 
@@ -304,7 +305,16 @@ const AiCamera = () => {
       videoEl.srcObject = stream;
       videoEl.muted = true;
       videoEl.playsInline = true;
+
+      const updateRatio = () => {
+        if (videoEl.videoWidth && videoEl.videoHeight) {
+          setCameraAspectRatio(`${videoEl.videoWidth} / ${videoEl.videoHeight}`);
+        }
+      };
+      videoEl.onloadedmetadata = updateRatio;
+
       await videoEl.play();
+      updateRatio();
 
       setIsCameraReady(true);
       dispatch({ type: 'RESET', payload: { feedback: 'Camera active. Step back to show full body.' } });
@@ -440,8 +450,10 @@ const AiCamera = () => {
       const overlay = overlayCanvasRef.current;
 
       if (videoEl && overlay && videoEl.readyState >= 2 && videoEl.videoWidth > 0) {
-        overlay.width = videoEl.videoWidth;
-        overlay.height = videoEl.videoHeight;
+        if (overlay.width !== videoEl.videoWidth || overlay.height !== videoEl.videoHeight) {
+          overlay.width = videoEl.videoWidth;
+          overlay.height = videoEl.videoHeight;
+        }
         const ctx = overlay.getContext('2d');
 
         const startTime = performance.now();
@@ -495,6 +507,7 @@ const AiCamera = () => {
   const stopCamera = async () => {
     setIsRunning(false);
     setIsCameraReady(false);
+    setCameraAspectRatio(null);
     if (rafIdRef.current) cancelAnimationFrame(rafIdRef.current);
     releaseCameraStream();
 
@@ -585,7 +598,10 @@ const AiCamera = () => {
 
       <div className="camera-grid">
         {/* Main Camera Viewport */}
-        <div className="camera-viewport">
+        <div
+          className="camera-viewport"
+          style={cameraAspectRatio ? { aspectRatio: cameraAspectRatio } : undefined}
+        >
           <video
             ref={videoRef}
             className="camera-video"
