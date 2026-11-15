@@ -1,0 +1,168 @@
+/* FitNex AI - Dashboard Styles */
+
+.dashboard-hero-banner {
+  position: relative;
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  min-height: 260px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  border: 1px solid var(--border-default);
+  box-shadow: var(--shadow-md);
+}
+
+.dashboard-hero-bg {
+  position: absolute;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+}
+
+.dashboard-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(to top, rgba(9, 10, 12, 0.95) 0%, rgba(9, 10, 12, 0.6) 60%, rgba(9, 10, 12, 0.2) 100%);
+}
+
+.dashboard-hero-content {
+  position: relative;
+  z-index: 1;
+  padding: 32px 36px;
+}
+
+/* Stat Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Tab Navigation */
+.dashboard-tabs {
+  display: flex;
+  gap: 8px;
+  border-bottom: 1px solid var(--border-default);
+  padding-bottom: 0;
+}
+
+.dashboard-tab-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 12px 16px;
+  font-weight: 600;
+  font-size: 14px;
+  color: var(--text-secondary);
+  border-bottom: 2px solid transparent;
+  transition: color 150ms var(--ease-out), border-color 150ms var(--ease-out);
+  letter-spacing: 0.02em;
+}
+
+.dashboard-tab-btn:hover {
+  color: var(--text-primary);
+}
+
+.dashboard-tab-btn.active {
+  color: var(--brand-primary);
+  border-bottom-color: var(--brand-primary);
+}
+
+/* Exercise Cards */
+.exercise-card {
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  transition: border-color 150ms var(--ease-out), transform 150ms var(--ease-out), background-color 150ms var(--ease-out);
+}
+
+.exercise-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: var(--bg-surface-2);
+  transform: translateY(-2px);
+}
+
+.exercise-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-sm);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--brand-primary);
+}
+
+.exercise-title {
+  color: var(--text-primary);
+  font-weight: 700;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.exercise-desc {
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+/* Analysis feedback cards */
+.analysis-results {
+  margin-top: 24px;
+  padding: 24px;
+  background: var(--bg-surface-1);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+}
+
+.score-display {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.score-circle {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  margin: 0 auto 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid;
+  position: relative;
+}
+
+.score-circle.excellent {
+  border-color: var(--brand-primary);
+  background: var(--brand-primary-tint);
+}
+
+.score-circle.good {
+  border-color: var(--color-carbs);
+  background: rgba(251, 191, 36, 0.1);
+}
+
+.score-circle.needs-improvement {
+  border-color: var(--color-error);
+  background: var(--color-error-bg);
+}
+
+.score-number {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.score-label {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
