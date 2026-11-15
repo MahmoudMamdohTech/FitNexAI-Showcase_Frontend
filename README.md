@@ -65,8 +65,8 @@ When testing the application live on Vercel:
 
 ```bash
 # Clone the showcase repository
-git clone https://github.com/YOUR_USERNAME/FitNexAI-Showcase.git
-cd FitNexAI-Showcase
+git clone https://github.com/MahmoudMamdohTech/FitNexAI-Showcase_Frontend.git
+cd FitNexAI-Showcase_Frontend
 
 # Install dependencies
 npm install
